@@ -1,0 +1,276 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  password       String
+  role           String   @default("STUDENT")
+  firstName      String
+  lastName       String
+  gender         String?
+  phone          String?
+  avatar         String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  studentProfile StudentProfile?
+  teacherProfile TeacherProfile?
+  createdExams   Exam[]       @relation("ExamCreator")
+  submissions    Submission[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+  announcements  Announcement[]
+
+  @@map("users")
+}
+
+model TeacherProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school        String?
+  department    String?
+  employeeId    String?
+  subjects      String   @default("[]")
+
+  @@map("teacher_profiles")
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  exams       Exam[]
+  questions   Question[]
+
+  @@map("subjects")
+}
+
+model Exam {
+  id               String   @id @default(uuid())
+  title            String
+  description      String?
+  subjectId        String
+  subject          Subject  @relation(fields: [subjectId], references: [id])
+  duration         Int
+  totalMarks       Int?
+  passMark         Int      @default(40)
+  status           String   @default("DRAFT")
+  instructions     String?
+  shuffleQuestions Boolean  @default(false)
+  showResult       Boolean  @default(true)
+  maxAttempts      Int      @default(1)
+  createdBy        String
+  creator          User     @relation("ExamCreator", fields: [createdBy], references: [id])
+  scheduledAt      DateTime?
+  startsAt         DateTime?
+  endsAt           DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  questions     Question[]
+  submissions   Submission[]
+  results       Result[]
+
+  @@map("exams")
+}
+
+model Question {
+  id            String   @id @default(uuid())
+  examId        String?
+  exam          Exam?    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  subjectId     String
+  subject       Subject  @relation(fields: [subjectId], references: [id])
+  questionText  String
+  questionType  String   @default("MCQ")
+  options       String?
+  correctAnswer String
+  explanation   String?
+  videoUrl      String?
+  marks         Int      @default(1)
+  difficulty    String   @default("MEDIUM")
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  answers       Answer[]
+
+  @@map("questions")
+}
+
+model Submission {
+  id          String   @id @default(uuid())
+  examId      String
+  exam        Exam     @relation(fields: [examId], references: [id])
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id])
+  status      String   @default("PENDING")
+  startedAt   DateTime?
+  submittedAt DateTime?
+  timeSpent   Int?
+  flagged     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  answers     Answer[]
+
+  @@unique([examId, studentId])
+  @@map("submissions")
+}
+
+model Answer {
+  id             String   @id @default(uuid())
+  submissionId   String
+  submission     Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  questionId     String
+  question       Question @relation(fields: [questionId], references: [id])
+  selectedAnswer String?
+  isCorrect      Boolean?
+  marksObtained  Int?
+  createdAt      DateTime @default(now())
+
+  @@unique([submissionId, questionId])
+  @@map("answers")
+}
+
+model Result {
+  id            String   @id @default(uuid())
+  examId        String
+  exam          Exam     @relation(fields: [examId], references: [id])
+  studentId     String
+  submissionId  String   @unique
+  totalMarks    Int
+  obtainedMarks Int
+  percentage    Float
+  grade         String?
+  passed        Boolean
+  rank          Int?
+  createdAt     DateTime @default(now())
+
+  certificate Certificate?
+
+  @@unique([examId, studentId])
+  @@map("results")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model StudentProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school        String?
+  studentId     String?
+  class         String?
+  dateOfBirth   DateTime?
+  points        Int      @default(0)
+  streak        Int      @default(0)
+  lastActiveAt  DateTime?
+  badges        StudentBadge[]
+
+  @@map("student_profiles")
+}
+
+model Badge {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  icon        String?
+  criteria    String?
+  createdAt   DateTime @default(now())
+
+  students    StudentBadge[]
+
+  @@map("badges")
+}
+
+model StudentBadge {
+  id        String   @id @default(uuid())
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  badgeId   String
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt  DateTime @default(now())
+
+  @@unique([studentId, badgeId])
+  @@map("student_badges")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model Certificate {
+  id            String   @id @default(uuid())
+  resultId      String   @unique
+  result        Result   @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  studentName   String
+  examTitle     String
+  score         Int
+  totalMarks    Int
+  percentage    Float
+  grade         String
+  issuedAt      DateTime @default(now())
+  qrCode        String?
+  pdfUrl        String?
+
+  @@map("certificates")
+}
+
+model Announcement {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  target    String   @default("all")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("announcements")
+}
+
+model School {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  address      String?
+  phone        String?
+  email        String?
+  logo         String?
+  subscription String   @default("free")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("schools")
+}
