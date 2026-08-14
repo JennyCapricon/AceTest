@@ -15,6 +15,7 @@ AceTest solves this by digitizing the entire exam lifecycle in one place:
 ## Key Features
 
 - **Role-based dashboards** for Admin, Teacher, and Student
+- **Password recovery** — forgot-password flow with email reset links (1-hour expiry, tokens stored hashed)
 - **Question bank** with multiple question types (MCQ, etc.), difficulty levels, and bulk import
 - **Exam engine** with timers, question shuffling, pass marks, scheduling, and configurable attempts
 - **Auto-grading** with instant results, percentages, grades, and pass/fail determination
@@ -92,14 +93,18 @@ cp server/.env.example server/.env
 | `DATABASE_URL`               | Prisma datasource URL (SQLite: `file:./dev.db`)    |
 | `JWT_SECRET`                 | Secret used to sign auth tokens                    |
 | `JWT_EXPIRES_IN`             | Token lifetime, e.g. `7d`                          |
-| `PORT`                       | API port (default `5000`)                          |
-| `NODE_ENV`                   | `development` or `production`                      |
-| `CLOUDINARY_CLOUD_NAME`      | Cloudinary cloud name (uploads)                    |
-| `CLOUDINARY_API_KEY`         | Cloudinary API key                                 |
-| `CLOUDINARY_API_SECRET`      | Cloudinary API secret                              |
-| `NEXT_PUBLIC_API_URL`        | Client → API base URL (default `http://localhost:5000/api`) |
+| `PORT`                   | API port (default `5000`)                          |
+| `NODE_ENV`               | `development` or `production`                      |
+| `CLIENT_URL`             | Frontend URL used to build password-reset links (default `http://localhost:3000`) |
+| `SMTP_HOST` / `SMTP_PORT` | SMTP server for reset emails (leave unset in dev)  |
+| `SMTP_USER` / `SMTP_PASS` | SMTP credentials                                   |
+| `MAIL_FROM`              | "From" address for outgoing emails                 |
+| `CLOUDINARY_CLOUD_NAME`  | Cloudinary cloud name (uploads)                    |
+| `CLOUDINARY_API_KEY`     | Cloudinary API key                                 |
+| `CLOUDINARY_API_SECRET`  | Cloudinary API secret                              |
+| `NEXT_PUBLIC_API_URL`    | Client → API base URL (default `http://localhost:5000/api`) |
 
-> The `.env` file is gitignored — never commit real credentials. Uploads will still work for local development if Cloudinary values are left as placeholders.
+> The `.env` file is gitignored — never commit real credentials. Uploads will still work for local development if Cloudinary values are left as placeholders. If SMTP is not configured, password-reset links are printed to the server console instead of emailed.
 
 ### Set up the database
 

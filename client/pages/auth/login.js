@@ -118,6 +118,12 @@ export default function LoginPage() {
                   />
                   <span className="text-sm text-gray-600">Remember me</span>
                 </label>
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-sm text-primary-600 font-medium hover:text-primary-700"
+                >
+                  Forgot password?
+                </Link>
               </div>
 
               <button type="submit" disabled={loading} className="btn-primary w-full justify-center">
