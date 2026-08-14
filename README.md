@@ -118,9 +118,10 @@ npm run prisma:seed
 
 | Role    | Email                | Password      |
 | ------- | -------------------- | ------------- |
-| Admin   | admin@acetest.com    | password123   |
 | Teacher | teacher@acetest.com  | password123   |
 | Student | student@acetest.com  | password123   |
+
+> No demo admin account is seeded. To create an admin, register a user and update their role to `ADMIN` directly in the database.
 
 ## Running Locally
 

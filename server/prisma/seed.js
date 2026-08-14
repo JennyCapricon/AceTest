@@ -6,18 +6,6 @@ const prisma = new PrismaClient();
 async function main() {
   const hashedPassword = await bcrypt.hash('password123', 12);
 
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@acetest.com' },
-    update: {},
-    create: {
-      email: 'admin@acetest.com',
-      password: hashedPassword,
-      role: 'ADMIN',
-      firstName: 'System',
-      lastName: 'Admin',
-    },
-  });
-
   const teacher = await prisma.user.upsert({
     where: { email: 'teacher@acetest.com' },
     update: {},
@@ -93,7 +81,7 @@ async function main() {
   }
 
   console.log('Seed data created successfully');
-  console.log({ admin: admin.email, teacher: teacher.email, student: student.email });
+  console.log({ teacher: teacher.email, student: student.email });
 }
 
 main()
