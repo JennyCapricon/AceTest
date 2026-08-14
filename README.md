@@ -176,13 +176,13 @@ AceTest is a two-part deployment: the Next.js **client** (static/SSG on Netlify 
 
 **Frontend — Netlify (recommended):**
 
-The repo includes a `netlify.toml` that builds the client correctly:
+The repo includes a `netlify.toml` that builds the client as a fully static export (`output: 'export'`, output in `client/out`):
 
 - Connect the GitHub repo to Netlify (or push to your branch — deploys are automatic)
 - Site settings → Build & Deploy:
   - Base directory: `client`
   - Build command: `npm run build`
-  - Publish directory: `.next`
+  - Publish directory: `out`
   - Node version: 20 (set via `[build.environment]` in `netlify.toml`)
 - Environment variables (build-time): `NEXT_PUBLIC_API_URL=https://<your-api-host>/api`
 - After the API is live, trigger a deploy: Deploys → **Clear cache and deploy site**

@@ -5,12 +5,13 @@
 [build]
   base = "client"
   command = "npm run build"
-  publish = ".next"
+  publish = "out"
 
 [build.environment]
   NODE_VERSION = "20"
 
-# Netlify auto-detects Next.js and applies the official Next.js runtime plugin.
-# NEXT_PUBLIC_API_URL must be set as a build-time environment variable in the
-# Netlify dashboard (Site configuration -> Environment variables) and must point
-# to the deployed Express API, e.g. https://acetest-api.onrender.com/api
+# The client is a fully static export (output: 'export'); Netlify serves the
+# out/ directory directly. NEXT_PUBLIC_API_URL must be set as a build-time
+# environment variable in the Netlify dashboard (Site configuration ->
+# Environment variables) and must point to the deployed Express API,
+# e.g. https://acetest-api.onrender.com/api
