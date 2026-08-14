@@ -205,6 +205,22 @@ npm run create:admin
 - Run it with `POSTGRES_DATABASE_URL` pointing at production (on Render's shell it's already set; locally, export it first).
 - It prompts for an email and a hidden password (min 8 chars), bcrypt-hashes it, and creates/upgrades an `ADMIN` user.
 
+> **Production accounts:** accounts created in local development (e.g. `nwadike894@gmail.com`, the seeded demo users) do **not** exist in the production database. Only accounts created on Render — the admin from `create:admin` and users who registered — are real. Password reset links are only sent for accounts that exist.
+
+**Step 2b — Enable password-reset emails (SMTP).**
+
+Without SMTP, the API logs the reset link to the Render console but no email is sent. To deliver real emails, add these env vars in Render → your `acetest-api` service → **Environment** (then redeploy):
+
+- `SMTP_HOST` — e.g. `smtp.gmail.com`, `smtp.sendgrid.net`, `smtp-relay.brevo.com`, `smtp.zoho.com`
+- `SMTP_PORT` — `587` (STARTTLS) or `465` (SSL)
+- `SMTP_USER` — your provider username/email
+- `SMTP_PASS` — app password / API key (Gmail requires an App Password; never use your account password)
+- `MAIL_FROM` — e.g. `AceTest <no-reply@yourdomain.com>`
+
+Senders: Gmail (enable 2FA → Google Account → App passwords), SendGrid (API key), Brevo, Zoho Mail, or Resend. SMTP values are secrets — set them only in the Render dashboard, never in the repo.
+
+**Until SMTP is configured**, you can still reset a password: request a reset for an existing account, then open Render → your `acetest-api` service → **Logs** — the reset link is printed there and works exactly like the emailed one.
+
 **Step 3 — Deploy the frontend to Netlify.**
 
 The `netlify.toml` builds the client as a static export (`output: 'export'`, output `client/out`) and already sets the build-time env var `NEXT_PUBLIC_API_URL=https://acetest-api.onrender.com/api`, so the Render URL is baked into every deploy automatically:

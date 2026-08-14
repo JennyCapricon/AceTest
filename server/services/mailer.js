@@ -5,6 +5,7 @@ const smtpPort = Number(process.env.SMTP_PORT || 587);
 const smtpUser = process.env.SMTP_USER;
 const smtpPass = process.env.SMTP_PASS;
 const mailFrom = process.env.MAIL_FROM || 'AceTest <no-reply@acetest.com>';
+const isProduction = process.env.NODE_ENV === 'production';
 
 function createTransport() {
   if (smtpHost && smtpUser && smtpPass) {
@@ -36,8 +37,14 @@ export async function sendPasswordResetEmail({ to, firstName, resetUrl }) {
   const transporter = createTransport();
 
   if (!transporter) {
-    console.log('\n[AceTest] Password reset requested for:', to);
-    console.log('[AceTest] Reset link (dev fallback, no SMTP configured):', resetUrl, '\n');
+    if (isProduction) {
+      console.log('\n[AceTest] SMTP is not configured — password reset emails will NOT be sent.');
+      console.log('[AceTest] Add SMTP_HOST/SMTP_USER/SMTP_PASS (and MAIL_FROM) as Render env vars to enable email delivery.');
+      console.log(`[AceTest] Reset link for ${to}:`, resetUrl, '\n');
+    } else {
+      console.log('\n[AceTest] Password reset requested for:', to);
+      console.log('[AceTest] Reset link (dev fallback, no SMTP configured):', resetUrl, '\n');
+    }
     return;
   }
 
