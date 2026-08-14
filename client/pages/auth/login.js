@@ -27,6 +27,10 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const userData = await login(email, password);
+      if (userData?.mustResetPassword) {
+        router.push('/auth/force-reset-password');
+        return;
+      }
       const roleRoutes = { STUDENT: '/student/dashboard', TEACHER: '/teacher/dashboard', ADMIN: '/admin/dashboard' };
       router.push(roleRoutes[userData?.role] || '/student/dashboard');
     } catch (err) {

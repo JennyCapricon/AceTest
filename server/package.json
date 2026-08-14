@@ -16,7 +16,8 @@
     "prisma:generate:pg": "npx prisma generate --schema prisma/schema.postgres.prisma",
     "prisma:push:pg": "npx prisma db push --schema prisma/schema.postgres.prisma",
     "prisma:seed": "node prisma/seed.js",
-    "create:admin": "node scripts/createAdmin.js"
+    "create:admin": "node scripts/createAdmin.js",
+    "flag:reset": "node scripts/flagPasswordReset.js"
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",

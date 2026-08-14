@@ -20,6 +20,7 @@ model User {
   phone          String?
   avatar         String?
   isActive       Boolean  @default(true)
+  mustResetPassword Boolean @default(false)
   resetToken     String?
   resetTokenExpiry DateTime?
   createdAt      DateTime @default(now())

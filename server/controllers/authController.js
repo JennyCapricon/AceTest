@@ -117,6 +117,7 @@ export const getMe = async (req, res, next) => {
         phone: true,
         avatar: true,
         isActive: true,
+        mustResetPassword: true,
         createdAt: true,
         studentProfile: true,
         teacherProfile: true,
@@ -171,7 +172,7 @@ export const changePassword = async (req, res, next) => {
 
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, mustResetPassword: false },
     });
 
     res.json({ success: true, message: 'Password updated successfully' });
@@ -260,7 +261,7 @@ export const resetPassword = async (req, res, next) => {
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: hashedPassword, resetToken: null, resetTokenExpiry: null },
+      data: { password: hashedPassword, resetToken: null, resetTokenExpiry: null, mustResetPassword: false },
     });
 
     logAction(user.id, 'RESET_PASSWORD', `Password reset for ${user.email}`, req);

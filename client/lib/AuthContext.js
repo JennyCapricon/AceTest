@@ -18,6 +18,9 @@ export function AuthProvider({ children }) {
       }
       const res = await authAPI.getMe();
       setUser(res.data.data);
+      if (res.data.data?.mustResetPassword && router.pathname !== '/auth/force-reset-password') {
+        router.push('/auth/force-reset-password');
+      }
     } catch {
       localStorage.removeItem('token');
       localStorage.removeItem('user');

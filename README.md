@@ -207,6 +207,19 @@ npm run create:admin
 
 > **Production accounts:** accounts created in local development (e.g. `nwadike894@gmail.com`, the seeded demo users) do **not** exist in the production database. Only accounts created on Render — the admin from `create:admin` and users who registered — are real. Password reset links are only sent for accounts that exist.
 
+**Step 2a — Require existing users to set a new password.**
+
+To force every existing non-admin user to change their password on next login (admin accounts are untouched):
+
+```bash
+npm run flag:reset
+```
+
+- Run it in Render → acetest-api → **Shell** after deployment (or locally with `POSTGRES_DATABASE_URL` exported).
+- It sets `mustResetPassword = true` for all users whose role is not `ADMIN` (idempotent — safe to re-run).
+- Flagged users are redirected to `/auth/force-reset-password` after signing in and must change their password (verified against their current password); the flag is cleared automatically afterward.
+- New registrations are never flagged.
+
 **Step 2b — Enable password-reset emails (SMTP).**
 
 Without SMTP, the API logs the reset link to the Render console but no email is sent. To deliver real emails, add these env vars in Render → your `acetest-api` service → **Environment** (then redeploy):
