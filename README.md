@@ -172,8 +172,34 @@ npm start
 
 ### Deploying
 
-- **Client**: deploy `client/` to any Next.js-compatible host (Vercel, Netlify, or a Node server via `next start`). Set `NEXT_PUBLIC_API_URL` to your deployed API.
-- **API**: deploy `server/` to any Node.js host (Render, Railway, Fly.io, or a VPS). Point `DATABASE_URL` at a managed SQLite or switch the Prisma provider to PostgreSQL/MySQL for production.
+AceTest is a two-part deployment: the Next.js **client** (static/SSG on Netlify or Vercel) and the **Express API** (on a Node.js host with a persistent database). Netlify cannot run the Express backend — do not attempt to deploy the `server/` folder there.
+
+**Frontend — Netlify (recommended):**
+
+The repo includes a `netlify.toml` that builds the client correctly:
+
+- Connect the GitHub repo to Netlify (or push to your branch — deploys are automatic)
+- Site settings → Build & Deploy:
+  - Base directory: `client`
+  - Build command: `npm run build`
+  - Publish directory: `.next`
+  - Node version: 20 (set via `[build.environment]` in `netlify.toml`)
+- Environment variables (build-time): `NEXT_PUBLIC_API_URL=https://<your-api-host>/api`
+- After the API is live, trigger a deploy: Deploys → **Clear cache and deploy site**
+
+**Backend — Render, Railway, Fly.io, or a VPS:**
+
+1. Deploy the `server/` folder as a Node.js web service with start command `node server.js`.
+2. Use a hosted database (e.g. Neon/Supabase Postgres or Railway MySQL) — **do not use the SQLite file DB in production** (data does not persist on ephemeral disks).
+3. Environment variables:
+   - `DATABASE_URL` → hosted database connection string
+   - `JWT_SECRET` → long random string
+   - `NODE_ENV=production`, `PORT`, `CLIENT_URL` → frontend URL
+   - `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` → to enable password-reset emails
+4. Run migrations: `npx prisma db push`, then create your admin account (run the seed locally and copy the user, or insert via SQL) — **do not rely on demo credentials in production**.
+5. Verify: `GET /api/health` returns `{ "success": true }`, then update `NEXT_PUBLIC_API_URL` and redeploy the frontend.
+
+The frontend build output is static (all pages are client-rendered), so any Next.js-compatible host works; Netlify's Next.js runtime handles routing automatically.
 
 ## Future Improvements
 
