@@ -207,10 +207,10 @@ npm run create:admin
 
 **Step 3 — Deploy the frontend to Netlify.**
 
-The `netlify.toml` builds the client as a static export (`output: 'export'`, output `client/out`):
+The `netlify.toml` builds the client as a static export (`output: 'export'`, output `client/out`) and already sets the build-time env var `NEXT_PUBLIC_API_URL=https://acetest-api.onrender.com/api`, so the Render URL is baked into every deploy automatically:
 
 - Site settings → Build & Deploy: base directory `client`, build command `npm run build`, publish directory `out`, Node 20.
-- Environment variable (build-time): `NEXT_PUBLIC_API_URL=https://<your-api>.onrender.com/api`.
+- (Optional override) To point at a different API, set `NEXT_PUBLIC_API_URL` in the Netlify dashboard — dashboard variables take precedence over `netlify.toml`.
 - Deploys → **Clear cache and deploy site**.
 
 **Step 4 — Verify.**

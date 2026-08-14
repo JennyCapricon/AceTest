@@ -9,9 +9,9 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  NEXT_PUBLIC_API_URL = "https://acetest-api.onrender.com/api"
 
 # The client is a fully static export (output: 'export'); Netlify serves the
-# out/ directory directly. NEXT_PUBLIC_API_URL must be set as a build-time
-# environment variable in the Netlify dashboard (Site configuration ->
-# Environment variables) and must point to the deployed Express API,
-# e.g. https://acetest-api.onrender.com/api
+# out/ directory directly. NEXT_PUBLIC_API_URL is baked into the bundle at
+# build time (client/services/api.js) and is set above; it must point to the
+# deployed Express API. Do not put secrets in this file.
