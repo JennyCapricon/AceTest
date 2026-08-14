@@ -160,7 +160,7 @@ Adding automated tests (Jest/Vitest for the server, Playwright for the client) i
 ### Production build
 
 ```bash
-npm run build      # builds the Next.js client (output in client/.next)
+npm run build      # builds the Next.js client (static export -> client/out)
 ```
 
 ### Run the API in production
@@ -172,34 +172,53 @@ npm start
 
 ### Deploying
 
-AceTest is a two-part deployment: the Next.js **client** (static/SSG on Netlify or Vercel) and the **Express API** (on a Node.js host with a persistent database). Netlify cannot run the Express backend — do not attempt to deploy the `server/` folder there.
+AceTest is a two-part deployment: the Next.js **client** (static on Netlify) and the **Express API** (Node.js on Render with hosted PostgreSQL). Netlify cannot run the Express backend — do not attempt to deploy the `server/` folder there.
 
-**Frontend — Netlify (recommended):**
+**Step 1 — Deploy the backend to Render.**
 
-The repo includes a `netlify.toml` that builds the client as a fully static export (`output: 'export'`, output in `client/out`):
+The repo includes a `render.yaml` blueprint that provisions the API web service and a managed PostgreSQL database together:
 
-- Connect the GitHub repo to Netlify (or push to your branch — deploys are automatic)
-- Site settings → Build & Deploy:
-  - Base directory: `client`
-  - Build command: `npm run build`
-  - Publish directory: `out`
-  - Node version: 20 (set via `[build.environment]` in `netlify.toml`)
-- Environment variables (build-time): `NEXT_PUBLIC_API_URL=https://<your-api-host>/api`
-- After the API is live, trigger a deploy: Deploys → **Clear cache and deploy site**
+1. Push this repository to GitHub (deploys are automatic).
+2. In Render: **New → Blueprint → select this repository** → click **Apply**.
+   - Render creates the `acetest-api` web service and the `acetest-db` PostgreSQL instance.
+   - `POSTGRES_DATABASE_URL` is wired automatically from the database.
+   - `JWT_SECRET` is auto-generated on first deploy.
+3. In the **acetest-api** service → **Environment**:
+   - Set `CLIENT_URL` to your frontend (default `https://acetestex.netlify.app`).
+   - Optional: add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` for password-reset emails.
+   - Optional: add `CLOUDINARY_*` for uploads.
+4. The build command already runs `prisma generate` + `prisma db push` against the PostgreSQL schema (`prisma/schema.postgres.prisma`), so tables are created on first deploy.
+5. Verify the service is healthy at `GET https://<your-api>.onrender.com/api/health` → `{ "success": true }`.
 
-**Backend — Render, Railway, Fly.io, or a VPS:**
+> **Backend env vars (Render):** `NODE_ENV=production`, `PORT=10000`, `POSTGRES_DATABASE_URL` (managed), `JWT_SECRET` (auto), `JWT_EXPIRES_IN=7d`, `CLIENT_URL`, plus optional SMTP/Cloudinary. Never commit real values — they live in Render's dashboard.
 
-1. Deploy the `server/` folder as a Node.js web service with start command `node server.js`.
-2. Use a hosted database (e.g. Neon/Supabase Postgres or Railway MySQL) — **do not use the SQLite file DB in production** (data does not persist on ephemeral disks).
-3. Environment variables:
-   - `DATABASE_URL` → hosted database connection string
-   - `JWT_SECRET` → long random string
-   - `NODE_ENV=production`, `PORT`, `CLIENT_URL` → frontend URL
-   - `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` → to enable password-reset emails
-4. Run migrations: `npx prisma db push`, then create your admin account (run the seed locally and copy the user, or insert via SQL) — **do not rely on demo credentials in production**.
-5. Verify: `GET /api/health` returns `{ "success": true }`, then update `NEXT_PUBLIC_API_URL` and redeploy the frontend.
+**Step 2 — Create your production admin.**
 
-The frontend build output is static (all pages are client-rendered), so any Next.js-compatible host works; Netlify's Next.js runtime handles routing automatically.
+Do **not** rely on the seeded demo accounts. Use the interactive CLI (password is entered hidden, never hardcoded):
+
+```bash
+cd server
+npm run prisma:generate:pg
+npm run create:admin
+```
+
+- Run it with `POSTGRES_DATABASE_URL` pointing at production (on Render's shell it's already set; locally, export it first).
+- It prompts for an email and a hidden password (min 8 chars), bcrypt-hashes it, and creates/upgrades an `ADMIN` user.
+
+**Step 3 — Deploy the frontend to Netlify.**
+
+The `netlify.toml` builds the client as a static export (`output: 'export'`, output `client/out`):
+
+- Site settings → Build & Deploy: base directory `client`, build command `npm run build`, publish directory `out`, Node 20.
+- Environment variable (build-time): `NEXT_PUBLIC_API_URL=https://<your-api>.onrender.com/api`.
+- Deploys → **Clear cache and deploy site**.
+
+**Step 4 — Verify.**
+
+- `GET /api/health` returns `{ "success": true }`
+- Log in with the admin you created in Step 2.
+
+> **Development vs production Prisma:** local development uses `prisma/schema.prisma` (SQLite, `DATABASE_URL`). Production uses `prisma/schema.postgres.prisma` (PostgreSQL, `POSTGRES_DATABASE_URL`). For long-term production schema changes, migrate from `db push` to `prisma migrate` (`npm run prisma:migrate:pg`).
 
 ## Future Improvements
 

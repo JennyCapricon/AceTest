@@ -1,0 +1,54 @@
+# Render Blueprint - deploys the AceTest Express API and a managed PostgreSQL database.
+# Docs: https://render.com/docs/blueprint-spec
+# Usage: push to GitHub, then in Render: New -> Blueprint -> select this repository.
+
+databases:
+  - name: acetest-db
+    plan: free
+    databaseName: acetest
+    user: acetest
+
+services:
+  - type: web
+    name: acetest-api
+    runtime: node
+    plan: free
+    rootDir: server
+    healthCheckPath: /api/health
+    buildCommand: npm install && npm run prisma:generate:pg && npm run prisma:push:pg
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # Managed Postgres connection string (filled automatically by Render)
+      - key: POSTGRES_DATABASE_URL
+        fromDatabase:
+          name: acetest-db
+          property: connectionString
+      # Auto-generated at first deploy; never commit real JWT secrets
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CLIENT_URL
+        value: https://acetestex.netlify.app
+      # SMTP for password-reset emails (optional - set in Render dashboard)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      # Cloudinary for uploads (optional - set in Render dashboard)
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
