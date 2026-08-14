@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { BookOpen, Shield, Bell } from 'lucide-react';
+import { BookOpen, Shield, Bell, KeyRound } from 'lucide-react';
+import { adminAPI } from '@/services/api';
 
 export default function AdminSettings() {
   const [examRules, setExamRules] = useState({
@@ -18,10 +19,27 @@ export default function AdminSettings() {
     notificationEmail: '',
   });
   const [message, setMessage] = useState('');
+  const [flagState, setFlagState] = useState({ confirming: false, running: false, result: null, error: '' });
 
   const showMessage = (text) => {
     setMessage(text);
     setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleFlagPasswordReset = async () => {
+    setFlagState((s) => ({ ...s, running: true, error: '' }));
+    try {
+      const res = await adminAPI.flagPasswordReset();
+      setFlagState({ confirming: false, running: false, result: res.data.data, error: '' });
+      showMessage(res.data.message);
+    } catch (err) {
+      setFlagState((s) => ({
+        ...s,
+        running: false,
+        confirming: false,
+        error: err.response?.data?.message || err.message || 'Failed to flag users. Please try again.',
+      }));
+    }
   };
 
   return (
@@ -148,6 +166,65 @@ export default function AdminSettings() {
               Save Notification Settings
             </button>
           </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center">
+              <KeyRound className="w-5 h-5 text-rose-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">Password Reset Policy</h2>
+          </div>
+          <p className="text-sm text-gray-500 mb-4">
+            Force every existing non-admin user to set a new password on their next login. Admin
+            accounts are never affected. Safe to run more than once.
+          </p>
+
+          {flagState.error && (
+            <div className="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              {flagState.error}
+            </div>
+          )}
+
+          {flagState.result ? (
+            <div className="mb-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+              <p className="font-medium mb-1">{flagState.result.flagged} user(s) flagged for password reset</p>
+              <ul className="list-disc pl-4">
+                {flagState.result.byRole.map((group) => (
+                  <li key={group.role}>
+                    {group.role}: {group.count}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : flagState.confirming ? (
+            <div className="mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+              <p className="font-medium mb-2">Are you sure? All non-admin users will be asked to change their password at next login.</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleFlagPasswordReset}
+                  disabled={flagState.running}
+                  className="px-3 py-1.5 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 disabled:opacity-50"
+                >
+                  {flagState.running ? 'Flagging...' : 'Yes, flag them'}
+                </button>
+                <button
+                  onClick={() => setFlagState({ confirming: false, running: false, result: null, error: '' })}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          <button
+            onClick={() => setFlagState((s) => ({ ...s, confirming: true }))}
+            disabled={flagState.running}
+            className="w-full px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 disabled:opacity-50"
+          >
+            Flag all non-admin users for password reset
+          </button>
         </div>
       </div>
     </DashboardLayout>

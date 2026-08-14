@@ -1,4 +1,5 @@
 import prisma from '../config/db.js';
+import { logAction } from './auditController.js';
 
 export const getUsers = async (req, res, next) => {
   try {
@@ -186,6 +187,38 @@ export const getSystemStats = async (req, res, next) => {
     res.json({
       success: true,
       data: { totalUsers, totalExams, totalQuestions, totalResults, recentUsers, recentExams },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// TEMPORARY production action: forces every non-ADMIN user to set a new
+// password on their next login. ADMIN accounts are never modified. Idempotent.
+// Remove this endpoint after the production flagging has been confirmed
+// (see client "Password Reset Policy" card in admin settings).
+export const flagAllNonAdminsForPasswordReset = async (req, res, next) => {
+  try {
+    const result = await prisma.user.updateMany({
+      where: { role: { not: 'ADMIN' } },
+      data: { mustResetPassword: true },
+    });
+
+    const byRole = await prisma.user.groupBy({
+      by: ['role'],
+      where: { role: { not: 'ADMIN' } },
+      _count: { _all: true },
+    });
+
+    logAction(req.user.id, 'FLAG_PASSWORD_RESET', `Flagged ${result.count} non-admin user(s) for password reset`, req);
+
+    res.json({
+      success: true,
+      message: `${result.count} non-admin user(s) flagged for password reset`,
+      data: {
+        flagged: result.count,
+        byRole: byRole.map((group) => ({ role: group.role, count: group._count._all })),
+      },
     });
   } catch (error) {
     next(error);

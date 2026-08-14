@@ -87,6 +87,7 @@ export const adminAPI = {
   updateSchool: (id, data) => api.put(`/admin/schools/${id}`, data),
   deleteSchool: (id) => api.delete(`/admin/schools/${id}`),
   getStats: () => api.get('/admin/stats'),
+  flagPasswordReset: () => api.post('/admin/users/flag-password-reset'),
 };
 
 export const subjectAPI = {
