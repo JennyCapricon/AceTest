@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import errorHandler from './middleware/errorHandler.js';
 import { runPasswordResetMigration } from './services/passwordResetMigration.js';
+import { runAccountWipeMigration } from './services/accountWipeMigration.js';
 
 import authRoutes from './routes/auth.js';
 import examRoutes from './routes/exam.js';
@@ -41,6 +42,7 @@ app.use('/api/announcements', announcementRoutes);
 
 app.use(errorHandler);
 
+await runAccountWipeMigration();
 await runPasswordResetMigration();
 
 app.listen(PORT, () => {

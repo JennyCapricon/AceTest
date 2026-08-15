@@ -221,6 +221,16 @@ Every non-admin user is forced to change their password on their next login. Thi
 
 The manual CLI (`npm run flag:reset`) still exists as an optional fallback if you ever need to force everyone again on demand — run it in Render → acetest-api → **Shell** (or locally with `POSTGRES_DATABASE_URL` exported).
 
+**Step 2aa — Reset everyone: delete every account and email (automatic).**
+
+To start everyone from the beginning (all existing accounts and emails removed so every user must register again), the API wipes all users **automatically** on the first production deploy after this change ships — no Render Shell, no dashboard clicks:
+
+- On startup in production (`NODE_ENV=production`), the API runs a one-time wipe against the production Postgres database (`POSTGRES_DATABASE_URL`).
+- It deletes **every** account — STUDENT, TEACHER, and ADMIN — plus their related data (submissions, answers, results, certificates, notifications, audit logs, announcements, exams, and teacher/student profiles). Platform content that is not tied to accounts (subjects, question bank, badges, schools) is kept.
+- A marker row in `app_meta` ensures the wipe runs exactly once per database — restarts and redeploys are safe (idempotent); users who registered after the wipe are never touched.
+- The server logs only a safe summary: `Account wipe completed: users deleted=X (ADMIN=A, TEACHER=T, STUDENT=S)` (never emails, passwords, or tokens).
+- After the wipe there are no admins left — recreate the production admin afterwards with `npm run create:admin` (see Step 2), or the first people to register will simply start with fresh student/teacher accounts.
+
 **Step 2b — Enable password-reset emails (SMTP).**
 
 Without SMTP, the API logs the reset link to the Render console but no email is sent. To deliver real emails, add these env vars in Render → your `acetest-api` service → **Environment** (then redeploy):
