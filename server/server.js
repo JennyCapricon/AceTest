@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import errorHandler from './middleware/errorHandler.js';
+import { runPasswordResetMigration } from './services/passwordResetMigration.js';
 
 import authRoutes from './routes/auth.js';
 import examRoutes from './routes/exam.js';
@@ -39,6 +40,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/announcements', announcementRoutes);
 
 app.use(errorHandler);
+
+await runPasswordResetMigration();
 
 app.listen(PORT, () => {
   console.log(`AceTest server running on port ${PORT}`);

@@ -207,18 +207,19 @@ npm run create:admin
 
 > **Production accounts:** accounts created in local development (e.g. `nwadike894@gmail.com`, the seeded demo users) do **not** exist in the production database. Only accounts created on Render — the admin from `create:admin` and users who registered — are real. Password reset links are only sent for accounts that exist.
 
-**Step 2a — Require existing users to set a new password.**
+**Step 2a — Require existing users to set a new password (automatic).**
 
-To force every existing non-admin user to change their password on next login (admin accounts are untouched):
+Every non-admin user is forced to change their password on their next login. This happens **automatically** on the first production deploy after this feature ships — no Render Shell, no dashboard clicks, no shared password:
 
-```bash
-npm run flag:reset
-```
-
-- Run it in Render → acetest-api → **Shell** after deployment (or locally with `POSTGRES_DATABASE_URL` exported).
-- It sets `mustResetPassword = true` for all users whose role is not `ADMIN` (idempotent — safe to re-run).
+- On startup in production (`NODE_ENV=production`), the API runs a one-time migration against the production Postgres database (`POSTGRES_DATABASE_URL`).
+- The build step already runs `prisma db push`, which creates the `mustResetPassword` column (and the `app_meta` marker table) before the server starts. A defensive check also adds the column via `ALTER TABLE` if it is ever missing.
+- It sets `mustResetPassword = true` for all users whose role is not `ADMIN`; **admin accounts are never modified** and no passwords or reset tokens are written.
+- A marker row is stored in `app_meta` so the migration runs exactly once per database — restarting the service is safe (idempotent) and users who already changed their password are never re-flagged.
+- The server logs only a safe summary: `Password reset migration completed: STUDENT=X, TEACHER=Y, OTHER=Z` (never emails, passwords, or tokens).
 - Flagged users are redirected to `/auth/force-reset-password` after signing in and must change their password (verified against their current password); the flag is cleared automatically afterward.
 - New registrations are never flagged.
+
+The manual CLI (`npm run flag:reset`) still exists as an optional fallback if you ever need to force everyone again on demand — run it in Render → acetest-api → **Shell** (or locally with `POSTGRES_DATABASE_URL` exported).
 
 **Step 2b — Enable password-reset emails (SMTP).**
 
