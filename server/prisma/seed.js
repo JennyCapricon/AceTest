@@ -6,54 +6,58 @@ const prisma = new PrismaClient();
 async function main() {
   const hashedPassword = await bcrypt.hash('password123', 12);
 
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@acetest.com' },
-    update: {},
-    create: {
-      email: 'admin@acetest.com',
-      password: hashedPassword,
-      role: 'ADMIN',
-      firstName: 'System',
-      lastName: 'Admin',
-    },
-  });
+  if (process.env.NODE_ENV !== 'production') {
+    const admin = await prisma.user.upsert({
+      where: { email: 'admin@acetest.com' },
+      update: {},
+      create: {
+        email: 'admin@acetest.com',
+        password: hashedPassword,
+        role: 'ADMIN',
+        firstName: 'System',
+        lastName: 'Admin',
+      },
+    });
 
-  const teacher = await prisma.user.upsert({
-    where: { email: 'teacher@acetest.com' },
-    update: {},
-    create: {
-      email: 'teacher@acetest.com',
-      password: hashedPassword,
-      role: 'TEACHER',
-      firstName: 'John',
-      lastName: 'Doe',
-      teacherProfile: {
-        create: {
-          school: 'AceTest High School',
-          department: 'Science',
+    const teacher = await prisma.user.upsert({
+      where: { email: 'teacher@acetest.com' },
+      update: {},
+      create: {
+        email: 'teacher@acetest.com',
+        password: hashedPassword,
+        role: 'TEACHER',
+        firstName: 'John',
+        lastName: 'Doe',
+        teacherProfile: {
+          create: {
+            school: 'AceTest High School',
+            department: 'Science',
+          },
         },
       },
-    },
-  });
+    });
 
-  const student = await prisma.user.upsert({
-    where: { email: 'student@acetest.com' },
-    update: {},
-    create: {
-      email: 'student@acetest.com',
-      password: hashedPassword,
-      role: 'STUDENT',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      studentProfile: {
-        create: {
-          school: 'AceTest High School',
-          studentId: 'STU001',
-          class: 'SS3',
+    const student = await prisma.user.upsert({
+      where: { email: 'student@acetest.com' },
+      update: {},
+      create: {
+        email: 'student@acetest.com',
+        password: hashedPassword,
+        role: 'STUDENT',
+        firstName: 'Jane',
+        lastName: 'Smith',
+        studentProfile: {
+          create: {
+            school: 'AceTest High School',
+            studentId: 'STU001',
+            class: 'SS3',
+          },
         },
       },
-    },
-  });
+    });
+
+    console.log('Demo accounts ready');
+  }
 
   const subjectTopics = [
     {
@@ -290,7 +294,6 @@ async function main() {
   }
 
   console.log('Seed data created successfully');
-  console.log({ admin: admin.email, teacher: teacher.email, student: student.email });
 }
 
 main()
