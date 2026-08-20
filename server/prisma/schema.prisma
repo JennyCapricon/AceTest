@@ -56,8 +56,23 @@ model Subject {
 
   exams       Exam[]
   questions   Question[]
+  topics      Topic[]
 
   @@map("subjects")
+}
+
+model Topic {
+  id        String   @id @default(uuid())
+  name      String
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  questions Question[]
+  exams     Exam[]
+
+  @@unique([subjectId, name])
+  @@map("topics")
 }
 
 model Exam {
@@ -73,6 +88,7 @@ model Exam {
   instructions     String?
   shuffleQuestions Boolean  @default(false)
   showResult       Boolean  @default(true)
+  classLevel       String?
   maxAttempts      Int      @default(1)
   createdBy        String
   creator          User     @relation("ExamCreator", fields: [createdBy], references: [id])
@@ -85,6 +101,8 @@ model Exam {
   questions     Question[]
   submissions   Submission[]
   results       Result[]
+  topicId       String?
+  topic         Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
 
   @@map("exams")
 }
@@ -95,6 +113,9 @@ model Question {
   exam          Exam?    @relation(fields: [examId], references: [id], onDelete: Cascade)
   subjectId     String
   subject       Subject  @relation(fields: [subjectId], references: [id])
+  topicId       String?
+  topic         Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  classLevel    String?
   questionText  String
   questionType  String   @default("MCQ")
   options       String?

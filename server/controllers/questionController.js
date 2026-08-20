@@ -18,11 +18,13 @@ const parseOptions = (question) => {
 
 export const createQuestion = async (req, res, next) => {
   try {
-    const { subjectId, questionText, questionType, options, correctAnswer, explanation, marks, difficulty, videoUrl } = req.body;
+    const { subjectId, topicId, classLevel, questionText, questionType, options, correctAnswer, explanation, marks, difficulty, videoUrl } = req.body;
 
     const question = await prisma.question.create({
       data: {
         subjectId,
+        topicId: topicId || null,
+        classLevel: classLevel || null,
         questionText,
         questionType: questionType || 'MCQ',
         options: normalizeOptions(options),
@@ -43,10 +45,12 @@ export const createQuestion = async (req, res, next) => {
 
 export const getQuestions = async (req, res, next) => {
   try {
-    const { subjectId, difficulty, questionType, page = 1, limit = 20 } = req.query;
+    const { subjectId, topicId, classLevel, difficulty, questionType, page = 1, limit = 20 } = req.query;
 
     const where = {};
     if (subjectId) where.subjectId = subjectId;
+    if (topicId) where.topicId = topicId;
+    if (classLevel) where.classLevel = classLevel;
     if (difficulty) where.difficulty = difficulty;
     if (questionType) where.questionType = questionType;
 
@@ -60,7 +64,7 @@ export const getQuestions = async (req, res, next) => {
         where,
         skip: parseInt(skip),
         take: parseInt(limit),
-        include: { subject: true },
+        include: { subject: true, topic: true },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.question.count({ where }),
@@ -85,7 +89,7 @@ export const getQuestion = async (req, res, next) => {
   try {
     const question = await prisma.question.findUnique({
       where: { id: req.params.id },
-      include: { subject: true },
+      include: { subject: true, topic: true },
     });
 
     if (!question) {

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { examAPI, subjectAPI } from '@/services/api';
+import { CLASS_LEVELS } from '@/lib/constants';
 import { Plus, Pencil, Send, Calendar, Trash2, X, Eye } from 'lucide-react';
 import Link from 'next/link';
 
 export default function TeacherExams() {
   const [exams, setExams] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -19,12 +21,33 @@ export default function TeacherExams() {
     title: '',
     description: '',
     subjectId: '',
+    topicId: '',
+    classLevel: '',
     duration: 60,
     passMark: 50,
     instructions: '',
     shuffleQuestions: false,
     showResult: false,
   });
+
+  const fetchTopics = async (subjectId) => {
+    if (!subjectId) {
+      setTopics([]);
+      return;
+    }
+    try {
+      const res = await subjectAPI.getTopics(subjectId);
+      setTopics(Array.isArray(res.data.data) ? res.data.data : []);
+    } catch (err) {
+      console.error('Failed to fetch topics', err);
+      setTopics([]);
+    }
+  };
+
+  const handleSubjectChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value, topicId: '' }));
+    if (field === 'subjectId') fetchTopics(value);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,12 +72,15 @@ export default function TeacherExams() {
       title: '',
       description: '',
       subjectId: '',
+      topicId: '',
+      classLevel: '',
       duration: 60,
       passMark: 50,
       instructions: '',
       shuffleQuestions: false,
       showResult: false,
     });
+    setTopics([]);
     setEditingExam(null);
   };
 
@@ -68,12 +94,15 @@ export default function TeacherExams() {
       title: exam.title || '',
       description: exam.description || '',
       subjectId: exam.subjectId || exam.subject?._id || '',
+      topicId: exam.topicId || exam.topic?.id || '',
+      classLevel: exam.classLevel || '',
       duration: exam.duration || 60,
       passMark: exam.passMark || 50,
       instructions: exam.instructions || '',
       shuffleQuestions: exam.shuffleQuestions || false,
       showResult: exam.showResult || false,
     });
+    fetchTopics(exam.subjectId || exam.subject?._id || '');
     setEditingExam(exam);
     setShowModal(true);
   };
@@ -282,7 +311,7 @@ export default function TeacherExams() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
                   <select
                     value={formData.subjectId}
-                    onChange={(e) => handleFormChange('subjectId', e.target.value)}
+                    onChange={(e) => handleSubjectChange('subjectId', e.target.value)}
                     required
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
                   >
@@ -292,6 +321,39 @@ export default function TeacherExams() {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
+                  <select
+                    value={formData.topicId}
+                    onChange={(e) => handleFormChange('topicId', e.target.value)}
+                    disabled={!formData.subjectId}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                  >
+                    <option value="">{formData.subjectId ? 'Select Topic' : 'Select a subject first'}</option>
+                    {topics.map((t) => (
+                      <option key={t._id || t.id} value={t._id || t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
+                  <select
+                    value={formData.classLevel}
+                    onChange={(e) => handleFormChange('classLevel', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                  >
+                    <option value="">Select Class</option>
+                    {CLASS_LEVELS.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
                   <input

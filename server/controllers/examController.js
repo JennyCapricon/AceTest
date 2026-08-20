@@ -13,13 +13,15 @@ const parseQuestionOptions = (questions) => {
 
 export const createExam = async (req, res, next) => {
   try {
-    const { title, description, subjectId, duration, totalMarks, passMark, instructions, shuffleQuestions, showResult, maxAttempts, scheduledAt, startsAt, endsAt } = req.body;
+    const { title, description, subjectId, topicId, classLevel, duration, totalMarks, passMark, instructions, shuffleQuestions, showResult, maxAttempts, scheduledAt, startsAt, endsAt } = req.body;
 
     const exam = await prisma.exam.create({
       data: {
         title,
         description,
         subjectId,
+        topicId: topicId || null,
+        classLevel: classLevel || null,
         duration: parseInt(duration),
         totalMarks: totalMarks ? parseInt(totalMarks) : null,
         passMark: parseInt(passMark || 40),
@@ -43,11 +45,12 @@ export const createExam = async (req, res, next) => {
 
 export const getExams = async (req, res, next) => {
   try {
-    const { status, subjectId, page = 1, limit = 20 } = req.query;
+    const { status, subjectId, classLevel, page = 1, limit = 20 } = req.query;
     const where = {};
 
     if (status) where.status = status;
     if (subjectId) where.subjectId = subjectId;
+    if (classLevel) where.classLevel = classLevel;
 
     if (req.user.role === 'TEACHER') {
       where.createdBy = req.user.id;
@@ -61,6 +64,7 @@ export const getExams = async (req, res, next) => {
         take: parseInt(limit),
         include: {
           subject: true,
+          topic: true,
           creator: { select: { id: true, firstName: true, lastName: true } },
           _count: { select: { questions: true, submissions: true } },
         },

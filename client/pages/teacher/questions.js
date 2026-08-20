@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { questionAPI, subjectAPI } from '@/services/api';
+import { CLASS_LEVELS } from '@/lib/constants';
 import { Plus, Upload, Pencil, Trash2, X, ChevronLeft, ChevronRight, Video, HelpCircle } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
@@ -8,6 +9,8 @@ const ITEMS_PER_PAGE = 10;
 export default function TeacherQuestions() {
   const [questions, setQuestions] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [topics, setTopics] = useState([]);
+  const [topicOptions, setTopicOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -15,10 +18,12 @@ export default function TeacherQuestions() {
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const [filters, setFilters] = useState({ subjectId: '', difficulty: '', questionType: '' });
+  const [filters, setFilters] = useState({ subjectId: '', topicId: '', classLevel: '', difficulty: '', questionType: '' });
 
   const [formData, setFormData] = useState({
     subjectId: '',
+    topicId: '',
+    classLevel: '',
     questionText: '',
     questionType: 'MCQ',
     options: ['', '', '', ''],
@@ -28,6 +33,22 @@ export default function TeacherQuestions() {
     marks: 1,
     difficulty: 'EASY',
   });
+
+  const fetchTopics = async (subjectId) => {
+    if (!subjectId) {
+      setTopics([]);
+      return [];
+    }
+    try {
+      const res = await subjectAPI.getTopics(subjectId);
+      const list = Array.isArray(res.data.data) ? res.data.data : [];
+      setTopics(list);
+      return list;
+    } catch (err) {
+      console.error('Failed to fetch topics', err);
+      return [];
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,6 +68,8 @@ export default function TeacherQuestions() {
       try {
         const params = { page, limit: ITEMS_PER_PAGE };
         if (filters.subjectId) params.subjectId = filters.subjectId;
+        if (filters.topicId) params.topicId = filters.topicId;
+        if (filters.classLevel) params.classLevel = filters.classLevel;
         if (filters.difficulty) params.difficulty = filters.difficulty;
         if (filters.questionType) params.questionType = filters.questionType;
         const res = await questionAPI.getAll(params);
@@ -62,9 +85,23 @@ export default function TeacherQuestions() {
     fetchQuestions();
   }, [page, filters]);
 
+  useEffect(() => {
+    if (!filters.subjectId) {
+      setTopicOptions([]);
+      return;
+    }
+    let cancelled = false;
+    subjectAPI.getTopics(filters.subjectId)
+      .then((res) => { if (!cancelled) setTopicOptions(Array.isArray(res.data.data) ? res.data.data : []); })
+      .catch(() => { if (!cancelled) setTopicOptions([]); });
+    return () => { cancelled = true; };
+  }, [filters.subjectId]);
+
   const resetForm = () => {
     setFormData({
       subjectId: '',
+      topicId: '',
+      classLevel: '',
       questionText: '',
       questionType: 'MCQ',
       options: ['', '', '', ''],
@@ -74,7 +111,13 @@ export default function TeacherQuestions() {
       marks: 1,
       difficulty: 'EASY',
     });
+    setTopics([]);
     setEditingQuestion(null);
+  };
+
+  const handleSubjectChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value, topicId: '' }));
+    if (field === 'subjectId') fetchTopics(value);
   };
 
   const openCreateModal = () => {
@@ -86,6 +129,8 @@ export default function TeacherQuestions() {
     const opts = Array.isArray(question.options) ? question.options : [];
     setFormData({
       subjectId: question.subjectId || question.subject?.id || '',
+      topicId: question.topicId || question.topic?.id || '',
+      classLevel: question.classLevel || '',
       questionText: question.questionText,
       questionType: question.questionType || 'MCQ',
       options: [...opts].concat(Array(4).fill('')).slice(0, 4),
@@ -95,6 +140,7 @@ export default function TeacherQuestions() {
       marks: question.marks || 1,
       difficulty: question.difficulty || 'EASY',
     });
+    fetchTopics(question.subjectId || question.subject?.id || '');
     setEditingQuestion(question);
     setShowModal(true);
   };
@@ -117,6 +163,8 @@ export default function TeacherQuestions() {
     try {
       const payload = {
         subjectId: formData.subjectId,
+        topicId: formData.topicId || undefined,
+        classLevel: formData.classLevel || undefined,
         questionText: formData.questionText,
         questionType: formData.questionType,
         correctAnswer: formData.correctAnswer,
@@ -137,6 +185,8 @@ export default function TeacherQuestions() {
       resetForm();
       const params = { page, limit: ITEMS_PER_PAGE };
       if (filters.subjectId) params.subjectId = filters.subjectId;
+      if (filters.topicId) params.topicId = filters.topicId;
+      if (filters.classLevel) params.classLevel = filters.classLevel;
       if (filters.difficulty) params.difficulty = filters.difficulty;
       if (filters.questionType) params.questionType = filters.questionType;
       const res = await questionAPI.getAll(params);
@@ -170,6 +220,8 @@ export default function TeacherQuestions() {
       e.target.value = '';
       const params = { page, limit: ITEMS_PER_PAGE };
       if (filters.subjectId) params.subjectId = filters.subjectId;
+      if (filters.topicId) params.topicId = filters.topicId;
+      if (filters.classLevel) params.classLevel = filters.classLevel;
       if (filters.difficulty) params.difficulty = filters.difficulty;
       if (filters.questionType) params.questionType = filters.questionType;
       const res = await questionAPI.getAll(params);
@@ -210,6 +262,27 @@ export default function TeacherQuestions() {
           ))}
         </select>
         <select
+          value={filters.topicId}
+          onChange={(e) => { setFilters((prev) => ({ ...prev, topicId: e.target.value })); setPage(1); }}
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+          disabled={!filters.subjectId}
+        >
+          <option value="">All Topics</option>
+          {topicOptions.map((t) => (
+            <option key={t._id || t.id} value={t._id || t.id}>{t.name}</option>
+          ))}
+        </select>
+        <select
+          value={filters.classLevel}
+          onChange={(e) => { setFilters((prev) => ({ ...prev, classLevel: e.target.value })); setPage(1); }}
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+        >
+          <option value="">All Classes</option>
+          {CLASS_LEVELS.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        <select
           value={filters.difficulty}
           onChange={(e) => { setFilters((prev) => ({ ...prev, difficulty: e.target.value })); setPage(1); }}
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
@@ -238,6 +311,8 @@ export default function TeacherQuestions() {
               <tr className="bg-gray-50 text-left text-gray-500">
                 <th className="px-6 py-4 font-medium">Question Text</th>
                 <th className="px-6 py-4 font-medium">Subject</th>
+                <th className="px-6 py-4 font-medium">Topic</th>
+                <th className="px-6 py-4 font-medium">Class</th>
                 <th className="px-6 py-4 font-medium">Type</th>
                 <th className="px-6 py-4 font-medium">Difficulty</th>
                 <th className="px-6 py-4 font-medium">Marks</th>
@@ -247,7 +322,7 @@ export default function TeacherQuestions() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
                     </div>
@@ -262,6 +337,8 @@ export default function TeacherQuestions() {
                   <tr key={q._id || i} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="px-6 py-4 text-gray-900 max-w-xs truncate">{q.questionText}</td>
                     <td className="px-6 py-4 text-gray-600">{q.subject?.name || q.subjectName || '-'}</td>
+                    <td className="px-6 py-4 text-gray-600">{q.topic?.name || q.topicName || '-'}</td>
+                    <td className="px-6 py-4 text-gray-600">{q.classLevel || '-'}</td>
                     <td className="px-6 py-4">
                       <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">{q.questionType}</span>
                     </td>
@@ -337,13 +414,42 @@ export default function TeacherQuestions() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
                 <select
                   value={formData.subjectId}
-                  onChange={(e) => handleFormChange('subjectId', e.target.value)}
+                  onChange={(e) => handleSubjectChange('subjectId', e.target.value)}
                   required
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
                 >
                   <option value="">Select Subject</option>
                   {subjects.map((s) => (
                     <option key={s._id || s.id} value={s._id || s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
+                <select
+                  value={formData.classLevel}
+                  onChange={(e) => handleFormChange('classLevel', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                >
+                  <option value="">Select Class</option>
+                  {CLASS_LEVELS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
+                <select
+                  value={formData.topicId}
+                  onChange={(e) => handleFormChange('topicId', e.target.value)}
+                  disabled={!formData.subjectId}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                >
+                  <option value="">{formData.subjectId ? 'Select Topic' : 'Select a subject first'}</option>
+                  {topics.map((t) => (
+                    <option key={t._id || t.id} value={t._id || t.id}>{t.name}</option>
                   ))}
                 </select>
               </div>

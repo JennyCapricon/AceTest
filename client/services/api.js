@@ -91,9 +91,12 @@ export const adminAPI = {
 
 export const subjectAPI = {
   getAll: () => api.get('/subjects'),
+  getTopics: (subjectId) => api.get(`/subjects/${subjectId}/topics`),
   create: (data) => api.post('/subjects', data),
   update: (id, data) => api.put(`/subjects/${id}`, data),
   delete: (id) => api.delete(`/subjects/${id}`),
+  createTopic: (subjectId, name) => api.post(`/subjects/${subjectId}/topics`, { name }),
+  deleteTopic: (subjectId, topicId) => api.delete(`/subjects/${subjectId}/topics/${topicId}`),
 };
 
 export const auditAPI = {
